@@ -17,6 +17,43 @@ getImageAltText = image => {
   return altTexts[image.src.split('/').pop()]
 }
 
+function fetchRestaurants(callback) {
+  fetch('http://localhost:1337/restaurants')
+    .then(res => res.json())
+    .then(restaurants => callback(null, restaurants))
+    .catch(err => callback(err, null))
+}
+
+function urlForRestaurant(restaurant) {
+  return `./restaurant.html?id=${restaurant.id}`
+}
+
+function mapMarkerForRestaurant(restaurant, map) {
+  const marker = new google.maps.Marker({
+    position: restaurant.latlng,
+    title: restaurant.name,
+    url: urlForRestaurant(restaurant),
+    map: map,
+    animation: google.maps.Animation.DROP,
+  })
+  return marker
+}
+
+function fetchRestaurantById(id, callback) {
+  fetchRestaurants((error, restaurants) => {
+    if (error) {
+      callback(error, null)
+    } else {
+      const restaurant = restaurants.find(r => r.id == id)
+      if (restaurant) {
+        callback(null, restaurant)
+      } else {
+        callback('Restaurant does not exist', null)
+      }
+    }
+  })
+}
+
 /*
 * Given an image, return a srcset for it.
 * like: srcset="/img/1-500px.jpg 500w, /img/1-1000px.jpg 1000w, /img/1-1500px.jpg 1500w"
@@ -37,7 +74,7 @@ window.initMap = () => {
         scrollwheel: false,
       })
       fillBreadcrumb()
-      DBHelper.mapMarkerForRestaurant(self.restaurant, self.map)
+      mapMarkerForRestaurant(self.restaurant, self.map)
     }
   })
 }
@@ -57,7 +94,7 @@ fetchRestaurantFromURL = callback => {
     error = 'No restaurant id in URL'
     callback(error, null)
   } else {
-    DBHelper.fetchRestaurantById(id, (error, restaurant) => {
+    fetchRestaurantById(id, (error, restaurant) => {
       self.restaurant = restaurant
       if (!restaurant) {
         console.error(error)
@@ -69,6 +106,15 @@ fetchRestaurantFromURL = callback => {
   }
 }
 
+function imageUrlForRestaurant(restaurant) {
+  return `/img/${restaurant.photograph}`
+}
+
+getImageSourceSet = image => {
+  const src = image.src.split('.')[0]
+  return `${src}-500px.jpg 500w, ${src}-1000px.jpg 1000w, ${src}-1500px.jpg 1500w`
+}
+
 fillRestaurantHTML = (restaurant = self.restaurant) => {
   const name = document.getElementById('restaurant-name')
   name.innerHTML = restaurant.name
@@ -78,7 +124,7 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
 
   const image = document.getElementById('restaurant-img')
   image.className = 'restaurant-img'
-  image.src = DBHelper.imageUrlForRestaurant(restaurant)
+  image.src = imageUrlForRestaurant(restaurant)
   image.srcset = getImageSourceSet(image)
   image.alt = getImageAltText(image)
 
