@@ -8,24 +8,11 @@ function getDatabaseUrl() {
 }
 
 function fetchRestaurants(callback) {
-  let xhr = new XMLHttpRequest()
-  xhr.open('GET', getDatabaseUrl())
-  xhr.onload = () => {
-    if (xhr.status === 200) {
-      const json = JSON.parse(xhr.responseText)
-      const restaurants = json.restaurants
-      callback(null, restaurants)
-    } else {
-      const error = `Request failed. Returned status of ${xhr.status}`
-      callback(error, null)
-    }
-  }
-  xhr.send()
+  fetch('http://localhost:1337/restaurants')
+    .then(res => res.json())
+    .then(restaurants => callback(null, restaurants))
+    .catch(err => callback(err, null))
 }
-
-// TODO: Get R's from jsonServer thusly...
-// fetch('http://localhost:1337/restaurants').then(res => {
-
 
 function fetchRestaurantById(id, callback) {
   fetchRestaurants((error, restaurants) => {
@@ -172,9 +159,6 @@ document.addEventListener('DOMContentLoaded', event => {
   fetchCuisines()
 })
 
-/**
- * Fetch all neighborhoods and set their HTML.
- */
 fetchNeighborhoods = () => {
   fetchRestaurants((error, neighborhoods) => {
     if (error) {
@@ -186,9 +170,6 @@ fetchNeighborhoods = () => {
   })
 }
 
-/**
- * Set neighborhoods HTML.
- */
 fillNeighborhoodsHTML = (neighborhoods = self.neighborhoods) => {
   const select = document.getElementById('neighborhoods-select')
   neighborhoods.forEach(neighborhood => {
@@ -199,9 +180,6 @@ fillNeighborhoodsHTML = (neighborhoods = self.neighborhoods) => {
   })
 }
 
-/**
- * Fetch all cuisines and set their HTML.
- */
 fetchCuisines = () => {
   fetchRestaurants((error, cuisines) => {
     if (error) {
@@ -213,9 +191,6 @@ fetchCuisines = () => {
   })
 }
 
-/**
- * Set cuisines HTML.
- */
 fillCuisinesHTML = (cuisines = self.cuisines) => {
   const select = document.getElementById('cuisines-select')
 
@@ -243,9 +218,6 @@ window.initMap = () => {
   updateRestaurants()
 }
 
-/**
- * Update page and map for current restaurants.
- */
 updateRestaurants = () => {
   const cSelect = document.getElementById('cuisines-select')
   const nSelect = document.getElementById('neighborhoods-select')
@@ -258,7 +230,6 @@ updateRestaurants = () => {
 
   fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, (error, restaurants) => {
     if (error) {
-      // Got an error!
       console.error(error)
     } else {
       resetRestaurants(restaurants)
@@ -267,9 +238,6 @@ updateRestaurants = () => {
   })
 }
 
-/**
- * Clear current restaurants, their HTML and remove their map markers.
- */
 resetRestaurants = restaurants => {
   // Remove all restaurants
   self.restaurants = []
@@ -295,9 +263,6 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
   addMarkersToMap()
 }
 
-/**
- * Create restaurant HTML.
- */
 createRestaurantHTML = restaurant => {
   const li = document.createElement('li')
 
@@ -346,7 +311,6 @@ createRestaurantHTML = restaurant => {
  */
 addMarkersToMap = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
-    // Add marker to the map
     const marker = mapMarkerForRestaurant(restaurant, self.map)
     google.maps.event.addListener(marker, 'click', () => {
       window.location.href = marker.url
