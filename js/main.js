@@ -1,6 +1,6 @@
 let restaurants, neighborhoods, cuisines
-var map
-var markers = []
+let map
+let markers = []
 
 function getDatabaseUrl() {
   const port = 10000
