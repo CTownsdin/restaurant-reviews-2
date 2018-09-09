@@ -1,12 +1,13 @@
+// const idb = require('idb')
 let restaurants, neighborhoods, cuisines
 let map
 let markers = []
-const getImageAltText = require('./shared').getImageAltText;
-const fetchRestaurants = require('./shared').fetchRestaurants;
-const urlForRestaurant = require('./shared').urlForRestaurant;
-const mapMarkerForRestaurant = require('./shared').mapMarkerForRestaurant;
-const fetchRestaurantById = require('./shared').fetchRestaurantById;
-const getImageSourceSet = require('./shared').getImageSourceSet;
+const getImageAltText = require('./shared').getImageAltText
+const fetchRestaurants = require('./shared').fetchRestaurants
+const urlForRestaurant = require('./shared').urlForRestaurant
+const mapMarkerForRestaurant = require('./shared').mapMarkerForRestaurant
+const fetchRestaurantById = require('./shared').fetchRestaurantById
+const getImageSourceSet = require('./shared').getImageSourceSet
 
 function getDatabaseUrl() {
   const port = 10000
@@ -151,7 +152,7 @@ fillCuisinesHTML = (cuisines = self.cuisines) => {
 }
 
 /**
- * Initialize Google map, called from HTML.
+ * Initialize Google map, called from HTML, in api key string
  */
 window.initMap = () => {
   let loc = {
@@ -254,9 +255,6 @@ createRestaurantHTML = restaurant => {
   return li
 }
 
-/**
- * Add markers for current restaurants to the map.
- */
 addMarkersToMap = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     const marker = mapMarkerForRestaurant(restaurant, self.map)

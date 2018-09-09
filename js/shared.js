@@ -1,3 +1,5 @@
+const idb = require('idb');
+
 function getImageAltText(image) {
   const altTexts = {
     '1.jpg': 'bustling dining room with chandeliers',
@@ -17,8 +19,32 @@ function getImageAltText(image) {
 function fetchRestaurants(callback) {
   fetch('http://localhost:1337/restaurants')
     .then(res => res.json())
+    // TEMPORARY TESTING
+    // Just push all r's into db
+    .then(restaurants => {
+      pushAllRestaurantsIntoIndexedDB(restaurants)
+      return restaurants;
+    })
+    // ^ probably remove or at least refactor that.
     .then(restaurants => callback(null, restaurants))
     .catch(err => callback(err, null))
+}
+
+function pushAllRestaurantsIntoIndexedDB(restaurants){
+  var dbPromise = idb.open('restaurantReviews', 1, function(upgradeDb) {
+    upgradeDb.createObjectStore('restaurants', { keyPath: 'id' })
+    // later, create other indexes, neighborhoods, and cuisines, here.
+  });
+
+  dbPromise.then((db) => {
+    var tx = db.transaction('restaurants', 'readwrite');
+    var restaurantsStore = tx.objectStore('restaurants');
+  
+    restaurants.forEach((restaurant) => restaurantsStore.put(restaurant));
+    return tx.complete;
+  }).then(function() {
+    console.log('Restaurants added');
+  });
 }
 
 function urlForRestaurant(restaurant) {
