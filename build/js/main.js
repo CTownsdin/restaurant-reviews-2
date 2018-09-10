@@ -81,24 +81,16 @@ function imageUrlForRestaurant(restaurant) {
   return `/img/${restaurant.photograph}`
 }
 
-/* register service worker */
-registerServiceWorker = () => {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('../sw.js')
-        .then(
-          function(registration) {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope)
-          },
-          function(err) {
-            console.log('ServiceWorker registration failed: ', err)
-          }
-        )
-    })
-  }
+function registerServiceWorker() {
+  if (!navigator.serviceWorker) return;
+  navigator.serviceWorker.register('../sw.js').then(function(registration) {
+    console.log(`SW registration successful with scope: ${registration.scope}`);
+  }).catch(function() {
+    console.log('Registration failed!');
+  });
 }
 
-registerServiceWorker()
+registerServiceWorker() // sw gets registered right here in main.js
 
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.

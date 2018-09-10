@@ -1,269 +1,154 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-// const idb = require('idb')
-let restaurants, neighborhoods, cuisines
+let restaurant
 let map
-let markers = []
-const getImageAltText = require('./shared').getImageAltText
-const fetchRestaurants = require('./shared').fetchRestaurants
-const urlForRestaurant = require('./shared').urlForRestaurant
-const mapMarkerForRestaurant = require('./shared').mapMarkerForRestaurant
-const fetchRestaurantById = require('./shared').fetchRestaurantById
-const getImageSourceSet = require('./shared').getImageSourceSet
+const getImageAltText = require('./shared').getImageAltText;
+const fetchRestaurants = require('./shared').fetchRestaurants;
+const urlForRestaurant = require('./shared').urlForRestaurant;
+const mapMarkerForRestaurant = require('./shared').mapMarkerForRestaurant;
+const fetchRestaurantById = require('./shared').fetchRestaurantById;
+const getImageSourceSet = require('./shared').getImageSourceSet;
 
-function getDatabaseUrl() {
-  const port = 10000
-  return `http://localhost:${port}/data/restaurants.json`
-}
-
-function fetchRestaurantByCuisine(cuisine, callback) {
-  fetchRestaurants((error, restaurants) => {
+window.initMap = () => {
+  fetchRestaurantFromURL((error, restaurant) => {
     if (error) {
-      callback(error, null)
+      console.error(`When initMap, got error: ${error}`)
     } else {
-      const results = restaurants.filter(r => r.cuisine_type == cuisine)
-      callback(null, results)
+      self.map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 16,
+        center: restaurant.latlng,
+        scrollwheel: false,
+      })
+      fillBreadcrumb()
+      mapMarkerForRestaurant(self.restaurant, self.map)
     }
   })
 }
 
-function fetchRestaurantByNeighborhood(neighborhood, callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      const results = restaurants.filter(r => r.neighborhood == neighborhood)
-      callback(null, results)
-    }
-  })
-}
-
-function fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      let results = restaurants
-      if (cuisine != 'all') {
-        results = results.filter(r => r.cuisine_type == cuisine)
+/**
+ * Get current restaurant from page URL.
+ */
+fetchRestaurantFromURL = callback => {
+  if (self.restaurant) {
+    // restaurant already fetched!
+    callback(null, self.restaurant)
+    return
+  }
+  const id = getParameterByName('id')
+  if (!id) {
+    // no id found in URL
+    error = 'No restaurant id in URL'
+    callback(error, null)
+  } else {
+    fetchRestaurantById(id, (error, restaurant) => {
+      self.restaurant = restaurant
+      if (!restaurant) {
+        console.error(error)
+        return
       }
-      if (neighborhood != 'all') {
-        results = results.filter(r => r.neighborhood == neighborhood)
-      }
-      callback(null, results)
-    }
-  })
-}
-
-function fetchNeighborhoods(callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      const neighborhoods = restaurants.map((v, i) => restaurants[i].neighborhood)
-      const uniqueNeighborhoods = neighborhoods.filter((v, i) => neighborhoods.indexOf(v) == i)
-      callback(null, uniqueNeighborhoods)
-    }
-  })
-}
-
-function fetchCuisines(callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      const cuisines = restaurants.map((v, i) => restaurants[i].cuisine_type)
-      const uniqueCuisines = cuisines.filter((v, i) => cuisines.indexOf(v) == i)
-      callback(null, uniqueCuisines)
-    }
-  })
+      fillRestaurantHTML()
+      callback(null, restaurant)
+    })
+  }
 }
 
 function imageUrlForRestaurant(restaurant) {
   return `/img/${restaurant.photograph}`
 }
 
-/* register service worker */
-registerServiceWorker = () => {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('../sw.js')
-        .then(
-          function(registration) {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope)
-          },
-          function(err) {
-            console.log('ServiceWorker registration failed: ', err)
-          }
-        )
-    })
-  }
-}
+fillRestaurantHTML = (restaurant = self.restaurant) => {
+  const name = document.getElementById('restaurant-name')
+  name.innerHTML = restaurant.name
 
-registerServiceWorker()
+  const address = document.getElementById('restaurant-address')
+  address.innerHTML = restaurant.address
 
-/**
- * Fetch neighborhoods and cuisines as soon as the page is loaded.
- */
-document.addEventListener('DOMContentLoaded', event => {
-  fetchNeighborhoods()
-  fetchCuisines()
-})
-
-fetchNeighborhoods = () => {
-  fetchRestaurants((error, neighborhoods) => {
-    if (error) {
-      console.error(error)
-    } else {
-      self.neighborhoods = neighborhoods
-      fillNeighborhoodsHTML()
-    }
-  })
-}
-
-fillNeighborhoodsHTML = (neighborhoods = self.neighborhoods) => {
-  const select = document.getElementById('neighborhoods-select')
-  neighborhoods.forEach(neighborhood => {
-    const option = document.createElement('option')
-    option.innerHTML = neighborhood
-    option.value = neighborhood
-    select.append(option)
-  })
-}
-
-fetchCuisines = () => {
-  fetchRestaurants((error, cuisines) => {
-    if (error) {
-      console.error(error)
-    } else {
-      self.cuisines = cuisines
-      fillCuisinesHTML()
-    }
-  })
-}
-
-fillCuisinesHTML = (cuisines = self.cuisines) => {
-  const select = document.getElementById('cuisines-select')
-
-  cuisines.forEach(cuisine => {
-    const option = document.createElement('option')
-    option.innerHTML = cuisine
-    option.value = cuisine
-    select.append(option)
-  })
-}
-
-/**
- * Initialize Google map, called from HTML, in api key string
- */
-window.initMap = () => {
-  let loc = {
-    lat: 40.722216,
-    lng: -73.987501,
-  }
-  self.map = new google.maps.Map(document.getElementById('map'), {
-    zoom: 12,
-    center: loc,
-    scrollwheel: false,
-  })
-  updateRestaurants()
-}
-
-updateRestaurants = () => {
-  const cSelect = document.getElementById('cuisines-select')
-  const nSelect = document.getElementById('neighborhoods-select')
-
-  const cIndex = cSelect.selectedIndex
-  const nIndex = nSelect.selectedIndex
-
-  const cuisine = cSelect[cIndex].value
-  const neighborhood = nSelect[nIndex].value
-
-  fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, (error, restaurants) => {
-    if (error) {
-      console.error(error)
-    } else {
-      resetRestaurants(restaurants)
-      fillRestaurantsHTML()
-    }
-  })
-}
-
-resetRestaurants = restaurants => {
-  // Remove all restaurants
-  self.restaurants = []
-  const ul = document.getElementById('restaurants-list')
-  ul.innerHTML = ''
-
-  // Remove all map markers
-  if (self.markers) {
-    self.markers.forEach(marker => marker.remove())
-  }
-  self.markers = []
-  self.restaurants = restaurants
-}
-
-/**
- * Create all restaurants HTML and add them to the webpage.
- */
-fillRestaurantsHTML = (restaurants = self.restaurants) => {
-  const ul = document.getElementById('restaurants-list')
-  restaurants.forEach(restaurant => {
-    ul.append(createRestaurantHTML(restaurant))
-  })
-  addMarkersToMap()
-}
-
-createRestaurantHTML = restaurant => {
-  const li = document.createElement('li')
-
-  const restaurantContainerDiv = document.createElement('div')
-  restaurantContainerDiv.classList.add('restaurant-container')
-
-  const topDiv = document.createElement('div')
-  const image = document.createElement('img')
+  const image = document.getElementById('restaurant-img')
   image.className = 'restaurant-img'
   image.src = imageUrlForRestaurant(restaurant)
   image.srcset = getImageSourceSet(image)
   image.alt = getImageAltText(image)
 
-  topDiv.append(image)
+  const cuisine = document.getElementById('restaurant-cuisine')
+  cuisine.innerHTML = restaurant.cuisine_type
 
-  const name = document.createElement('h1')
-  name.innerHTML = restaurant.name
+  if (restaurant.operating_hours) {
+    fillRestaurantHoursHTML()
+  }
+  fillReviewsHTML()
+}
 
-  restaurantContainerDiv.append(topDiv)
+fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => {
+  const hours = document.getElementById('restaurant-hours')
+  for (let key in operatingHours) {
+    const row = document.createElement('tr')
 
-  const bottomDiv = document.createElement('div')
-  const neighborhood = document.createElement('p')
-  neighborhood.innerHTML = restaurant.neighborhood
+    const day = document.createElement('td')
+    day.innerHTML = key
+    row.appendChild(day)
 
-  const address = document.createElement('p')
-  address.innerHTML = restaurant.address
-  
-  const viewDetails = document.createElement('a')
-  viewDetails.innerHTML = 'View Details'
-  viewDetails.href = urlForRestaurant(restaurant)
+    const time = document.createElement('td')
+    time.innerHTML = operatingHours[key]
+    row.appendChild(time)
 
-  bottomDiv.append(name)
-  bottomDiv.append(neighborhood)
-  bottomDiv.append(address)
-  bottomDiv.append(viewDetails)
-  bottomDiv.classList.add('restaurant-info')
+    hours.appendChild(row)
+  }
+}
 
-  restaurantContainerDiv.append(bottomDiv)
+fillReviewsHTML = (reviews = self.restaurant.reviews) => {
+  const container = document.getElementById('reviews-container')
+  const title = document.createElement('h2')
+  title.innerHTML = 'Reviews'
+  container.appendChild(title)
 
-  li.append(restaurantContainerDiv)
+  if (!reviews) {
+    const noReviews = document.createElement('p')
+    noReviews.innerHTML = 'No reviews yet!'
+    container.appendChild(noReviews)
+    return
+  }
+  const ul = document.getElementById('reviews-list')
+  reviews.forEach(review => {
+    ul.appendChild(createReviewHTML(review))
+  })
+  container.appendChild(ul)
+}
+
+createReviewHTML = review => {
+  const li = document.createElement('li')
+  const name = document.createElement('p')
+  name.innerHTML = review.name
+  li.appendChild(name)
+
+  const date = document.createElement('p')
+  date.innerHTML = review.date
+  li.appendChild(date)
+
+  const rating = document.createElement('p')
+  rating.innerHTML = `Rating: ${review.rating}`
+  li.appendChild(rating)
+
+  const comments = document.createElement('p')
+  comments.innerHTML = review.comments
+  li.appendChild(comments)
+
   return li
 }
 
-addMarkersToMap = (restaurants = self.restaurants) => {
-  restaurants.forEach(restaurant => {
-    const marker = mapMarkerForRestaurant(restaurant, self.map)
-    google.maps.event.addListener(marker, 'click', () => {
-      window.location.href = marker.url
-    })
-    self.markers.push(marker)
-  })
+fillBreadcrumb = (restaurant = self.restaurant) => {
+  const breadcrumb = document.getElementById('breadcrumb')
+  const li = document.createElement('li')
+  li.innerHTML = restaurant.name
+  breadcrumb.appendChild(li)
+}
+
+getParameterByName = (name, url) => {
+  if (!url) url = window.location.href
+  name = name.replace(/[\[\]]/g, '\\$&')
+  const regex = new RegExp(`[?&]${name}(=([^&#]*)|&|#|$)`),
+    results = regex.exec(url)
+  if (!results) return null
+  if (!results[2]) return ''
+  return decodeURIComponent(results[2].replace(/\+/g, ' '))
 }
 
 },{"./shared":2}],2:[function(require,module,exports){

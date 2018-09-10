@@ -19,7 +19,7 @@ function getImageAltText(image) {
 function fetchRestaurants(callback) {
   fetch('http://localhost:1337/restaurants')
     .then(res => res.json())
-    // TEMPORARY TESTING
+    // TEMPORARY TESTING  FIXME:
     // Just push all r's into db
     .then(restaurants => {
       pushAllRestaurantsIntoIndexedDB(restaurants)

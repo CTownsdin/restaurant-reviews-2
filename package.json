@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "serve": "python -m SimpleHTTPServer 10000",
+    "serve-python": "python -m SimpleHTTPServer 10001",
+    "serve": "gulp serve",
     "main-bundle": "browserify js/main.js -o js/bundle-main.js",
     "main-bundle-watch": "watchify js/main.js -o js/bundle-main.js",
     "info-bundle": "browserify js/restaurantInfo.js -o js/bundle-restaurantInfo.js",
@@ -30,10 +31,14 @@
     "grunt-contrib-uglify": "^3.3.0",
     "grunt-mkdir": "^1.0.0",
     "grunt-responsive-images": "^1.10.1",
-    "watchify": "^3.11.0"
+    "gulp": "^4.0.0",
+    "watchify": "^3.11.0",
+    "browser-sync": "^2.23.7",
+    "browserify": "^16.2.2",
+    "del": "^3.0.0",
+    "workbox-build": "^3.4.1"
   },
   "dependencies": {
-    "browserify": "^16.2.2",
     "idb": "^2.1.3"
   }
 }
