@@ -1,75 +1,64 @@
-var CACHE_NAME = 'restaurant-reviews-2'
-/*
-  <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/main-responsive.css">
-  <link rel="stylesheet" href="css/restaurant.css" type="text/css">
-  <link rel="stylesheet" href="css/restaurant-responsive.css" type="text/css">
-  <script type="application/javascript" charset="utf-8" src="js/bundle-main.js"></script>
-  <script type="text/javascript" src="js/bundle-restaurantInfo.js"></script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpPYmhjSFfGFY-nLn0G5CxCHp_IwfAaFU&libraries=places&callback=initMap"></script>
-*/
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/3.4.1/workbox-sw.js');
 
-// cache everything during the install event, before taking over
-self.addEventListener('install', function(event) {
-  console.log('sw ver 4');
-  var urlsToCache = [
-    '/',
-    // 'normalize-css.googlecode.com/svn/trunk/normalize.css', // ?
-    'css/main.css',
-    'css/main-responsive.css',
-    'css/restaurant.css',
-    'css/restaurant-responsive.css',
-    'js/bundle-main.js',
-    'js/bundle-restaurantInfo.js',
-    // 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCpPYmhjSFfGFY-nLn0G5CxCHp_IwfAaFU&libraries=places&callback=initMap'
-  ];
+if (workbox) {
+  console.log(`Workbox is loaded.`);
 
-  event.waitUntil(caches.open(CACHE_NAME)
-    .then(cache => cache.addAll(urlsToCache))
-    .catch(err => console.error(`Some error caching: ${err}`))
-  )
-})
+  workbox.precaching.precacheAndRoute([]);
 
-// good code.
-self.addEventListener('fetch', function(event) {
+  // workbox.routing.registerRoute(
+  //   /(.*)restaurant\.html/,
+  //   workbox.strategies.cacheFirst({
+  //     cacheName: 'restaurants-cache',
+  //     plugins: [
+  //       new workbox.expiration.Plugin({
+  //         maxEntries: 50,
+  //         maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+  //       })
+  //     ]
+  //   })
+  // );
 
-  if (event.request.url.indexOf('https://maps.googleapis.com/maps/api/js') == 0 ) {
-    event.re
-  }
+  const restaurantHandler = workbox.strategies.networkFirst({
+    cacheName: 'restaurants-cache',
+    plugins: [
+      new workbox.expiration.Plugin({
+        maxEntries: 50,
+      })
+    ]
+  });
+  
+  workbox.routing.registerRoute(/(.*)restaurant\.html/, args => {
+    return restaurantHandler.handle(args).then(response => {
+      if (!response) { // are offline & missed, thf return precached custom offline page
+        return caches.match('pages/offline.html');
+      } else if (response.status === 404) { // are online, is 404, return precached custom offline page
+        return caches.match('pages/404.html');
+      }
+      return response;
+    });
+  });
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) return response // if match, respond with match
+  // const postHandler = workbox.strategies.cacheFirst({
+  //   cacheName: 'posts-cache',
+  //   plugins: [
+  //     new workbox.expiration.Plugin({
+  //       maxEntries: 50,
+  //     })
+  //   ]
+  // });
+  
+  // workbox.routing.registerRoute(/(.*)pages\/post(.*)\.html/, args => {
+  //   return postHandler.handle(args).then(response => {
+  //     if (response.status === 404) {
+  //       return caches.match('pages/404.html');
+  //     }
+  //     return response;
+  //   })
+  //   .catch(function(){
+  //     return caches.match('pages/offline.html');
+  //   });
+  // });
 
-        // else, cache it for next time
-        const fetchRequest = event.request.clone()
-        return fetch(event.request).then(response => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response; // basic requests are requests from our origin, if not our origin, do not cache
-          }
-          const responseToCache = response.clone()
-          caches.open(CACHE_NAME)
-            .then(cache => cache.put(event.request, responseToCache))
-            .catch(err => console.error(`Some error caching: ${err}`))
-          return response // finally return response post caching
-        })
-    })
-  )
-})
-
-// // if 404, respond with something
-// self.addEventListener('fetch', function(event) {
-//   event.respondWith(
-//     fetch(event.request).then(function(response) {
-//       if (response.status === 404) {
-//         return fetch('./img/1-500px.jpg');
-//       }
-//       return response;
-//     }).catch(function() {
-//       return new Response("failed, but not 404 failture");
-//     })
-//   )
-// })
-
+} else {
+  console.log(`Workbox failed to load 😬`);
+}
