@@ -22,11 +22,11 @@ if (workbox) {
   },
   {
     "url": "index.html",
-    "revision": "0787da7af075d28b577b073df676256b"
+    "revision": "167e793055557324dc4171daacc94be2"
   },
   {
     "url": "restaurant.html",
-    "revision": "7ed9e0f7a27f787571eb586a29187392"
+    "revision": "98a92f92cb7979ce2666b3c2916d4322"
   },
   {
     "url": "js/bundle-main.js",
