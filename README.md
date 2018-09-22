@@ -1,38 +1,24 @@
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
-Project Code For Google Mobile Web Nano Degree
-Part 1
+Project Code For Google Mobile Web Nano Degree  Part 2   
 
-🐠🌊
+This project has a separate JSON server to simulate fetching data from an external API.  
+It must be started up first.  
+do the following...  
 
-Make sure you have python 2.x installed, and serve the site locally with  
-`$ python -m SimpleHTTPServer 10000`  
-and open in chrome at:  http://localhost:10000/  
+Use node version 8.  
 
-Or just use the npm script which does the same thing  
-`npm run serve`
-
-Storing the google maps api key in an env var.  
-  Checking your env  
-  `$ printenv `
-
-  Setting an env var
-  `$ export NEW_VAR="something awesome"`
-
-  Accessing your new env var in the code.
-  `process.env(NEW_VAR)`
-
-This project has a separate JSON server, to simulate fetching data from an external API.  
-It is a SailsJS server.  
-To start the SailsJS server, do the following...  
-
-In a new terminal  
+In the terminal  
 `$ cd jsonServer`  
 `$ npm install`  
 `$ npm run start`  to start the server.  
 
 Verify it is running by navigating to **http://localhost:1337/restaurants** in your browser, and geting the restaurants JSON.  
-Further information about the jsonServer is available in the README.md inside the folder.  
+Further information about the jsonServer is available in the README.md inside the jsonServer/ folder.  
 
+Next, we can start the main project.  Change directory back to the project root, and...  
+`$ npm install`  
+`$ npm run serve`  
 
-
+And view the app in your browser at:  
+http://localhost:8081  
