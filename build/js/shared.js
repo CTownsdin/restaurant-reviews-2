@@ -2,30 +2,30 @@ const idb = require('idb');
 
 function getImageAltText(image) {
   const altTexts = {
-    '1.jpg': 'bustling dining room with chandeliers',
-    '2.jpg': 'mozzarella cheese pizza with bubbly crust',
-    '3.jpg': 'dining room styled with wooden and lots of stainless steel',
-    '4.jpg': 'artistic photo of brick building shot from the corner exterior sidewalk',
-    '5.jpg': 'cook smiles while overlooking a busy cozy scene',
-    '6.jpg': 'a rustic dining room in a converted warehouse, with a large US flag decoration',
-    '7.jpg': 'black and white photo of concrete textured frontage of Superiority Burger joint',
-    '8.jpg': 'building with awning and sign above says the DUTCH',
-    '9.jpg': 'people casually eating and drinking water, beer, and wine, some browse on cellphones',
-    '10.jpg': 'modern white and chrome styled eating bar and seating area'
+    '1': 'bustling dining room with chandeliers',
+    '2': 'mozzarella cheese pizza with bubbly crust',
+    '3': 'dining room styled with wooden and lots of stainless steel',
+    '4': 'artistic photo of brick building shot from the corner exterior sidewalk',
+    '5': 'cook smiles while overlooking a busy cozy scene',
+    '6': 'a rustic dining room in a converted warehouse, with a large US flag decoration',
+    '7': 'black and white photo of concrete textured frontage of Superiority Burger joint',
+    '8': 'building with awning and sign above says the DUTCH',
+    '9': 'people casually eating and drinking water, beer, and wine, some browse on cellphones',
+    '10': 'modern white and chrome styled eating bar and seating area'
   }
-  return altTexts[image.src.split('/').pop()]
+  console.log(`getImageAltText returning: ${altTexts[image.src.split('/').pop()]}`);
+  console.log(`image.src string is ${image.src}`);
+  // http://localhost:9999/img/4
+  return altTexts[image.src.split('/').pop()];
 }
 
 function fetchRestaurants(callback) {
   fetch('http://localhost:1337/restaurants')
     .then(res => res.json())
-    // TEMPORARY TESTING  FIXME:
-    // Just push all r's into db
     .then(restaurants => {
       pushAllRestaurantsIntoIndexedDB(restaurants)
       return restaurants;
     })
-    // ^ probably remove or at least refactor that.
     .then(restaurants => callback(null, restaurants))
     .catch(err => callback(err, null))
 }

@@ -1,4 +1,3 @@
-// const idb = require('idb')
 let restaurants, neighborhoods, cuisines
 let map
 let markers = []
@@ -205,6 +204,7 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
 }
 
 createRestaurantHTML = restaurant => {
+  console.log(`createRestaurantHTML is being called`);
   const li = document.createElement('li')
 
   const restaurantContainerDiv = document.createElement('div')
@@ -248,6 +248,7 @@ createRestaurantHTML = restaurant => {
 }
 
 addMarkersToMap = (restaurants = self.restaurants) => {
+  console.log('adding markers to map');
   restaurants.forEach(restaurant => {
     const marker = mapMarkerForRestaurant(restaurant, self.map)
     google.maps.event.addListener(marker, 'click', () => {

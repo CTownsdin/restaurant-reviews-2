@@ -30,15 +30,15 @@ if (workbox) {
   },
   {
     "url": "js/bundle-main.js",
-    "revision": "726f527ddbb376a7f240cd6736fe8cc0"
+    "revision": "66a66a2b4d2c6dd013911aaef3d652b9"
   },
   {
     "url": "js/bundle-restaurantInfo.js",
-    "revision": "6bb5147100f0cdddbb92b940cf3b548e"
+    "revision": "29b85b3a5def195b12fd562cd034b7db"
   },
   {
     "url": "js/main.js",
-    "revision": "cf3dc546cd41ab0be62ea352c93cf7cb"
+    "revision": "ecab431268d4db5dc918ef813fd683c4"
   },
   {
     "url": "js/restaurantInfo.js",
@@ -46,7 +46,7 @@ if (workbox) {
   },
   {
     "url": "js/shared.js",
-    "revision": "36d232b35fd4bc8987b5140695c239ad"
+    "revision": "4e14f023e992d08a1004a8afde66b25b"
   },
   {
     "url": "img/1-1000px.jpg",

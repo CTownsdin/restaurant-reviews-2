@@ -5,12 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "serve-python": "python -m SimpleHTTPServer 10001",
-    "serve": "gulp serve",
-    "main-bundle": "browserify js/main.js -o js/bundle-main.js",
-    "main-bundle-watch": "watchify js/main.js -o js/bundle-main.js",
-    "info-bundle": "browserify js/restaurantInfo.js -o js/bundle-restaurantInfo.js",
-    "info-bundle-watch": "watchify js/main.js -o js/bundle-restaurantInfo.js"
+    "start": "echo 'Start the jsonServer, then do $ npm run serve; info in README.md'",
+    "simpleServer": "cd ./build && python -m SimpleHTTPServer 9999",
+    "gulp-serve": "gulp serve",
+    "bundleJS": "npm run bundle-main && npm run bundle-restaurant",
+    "bundle-main": "browserify src/js/main.js -o src/js/bundle-main.js",
+    "bundle-restaurant": "browserify src/js/restaurantInfo.js -o src/js/bundle-restaurantInfo.js"
   },
   "repository": {
     "type": "git",

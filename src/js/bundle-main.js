@@ -1,378 +1,4 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-// const idb = require('idb')
-let restaurants, neighborhoods, cuisines
-let map
-let markers = []
-const getImageAltText = require('./shared').getImageAltText
-const fetchRestaurants = require('./shared').fetchRestaurants
-const urlForRestaurant = require('./shared').urlForRestaurant
-const mapMarkerForRestaurant = require('./shared').mapMarkerForRestaurant
-const fetchRestaurantById = require('./shared').fetchRestaurantById
-const getImageSourceSet = require('./shared').getImageSourceSet
-
-function getDatabaseUrl() {
-  const port = 10000
-  return `http://localhost:${port}/data/restaurants.json`
-}
-
-function fetchRestaurantByCuisine(cuisine, callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      const results = restaurants.filter(r => r.cuisine_type == cuisine)
-      callback(null, results)
-    }
-  })
-}
-
-function fetchRestaurantByNeighborhood(neighborhood, callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      const results = restaurants.filter(r => r.neighborhood == neighborhood)
-      callback(null, results)
-    }
-  })
-}
-
-function fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      let results = restaurants
-      if (cuisine != 'all') {
-        results = results.filter(r => r.cuisine_type == cuisine)
-      }
-      if (neighborhood != 'all') {
-        results = results.filter(r => r.neighborhood == neighborhood)
-      }
-      callback(null, results)
-    }
-  })
-}
-
-function fetchNeighborhoods(callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      const neighborhoods = restaurants.map((v, i) => restaurants[i].neighborhood)
-      const uniqueNeighborhoods = neighborhoods.filter((v, i) => neighborhoods.indexOf(v) == i)
-      callback(null, uniqueNeighborhoods)
-    }
-  })
-}
-
-function fetchCuisines(callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      const cuisines = restaurants.map((v, i) => restaurants[i].cuisine_type)
-      const uniqueCuisines = cuisines.filter((v, i) => cuisines.indexOf(v) == i)
-      callback(null, uniqueCuisines)
-    }
-  })
-}
-
-function imageUrlForRestaurant(restaurant) {
-  return `/img/${restaurant.photograph}`
-}
-
-/* register service worker */
-// registerServiceWorker = () => {
-//   if ('serviceWorker' in navigator) {
-//     window.addEventListener('load', function() {
-//       navigator.serviceWorker.register('../sw.js')
-//         .then(
-//           function(registration) {
-//             console.log('ServiceWorker registration successful with scope: ', registration.scope)
-//           },
-//           function(err) {
-//             console.log('ServiceWorker registration failed: ', err)
-//           }
-//         )
-//     })
-//   }
-// }
-
-function registerServiceWorker() {
-  if (!navigator.serviceWorker) return;
-  navigator.serviceWorker.register('../sw.js').then(function(registration) {
-    console.log(`SW registration successful with scope: ${registration.scope}`);
-  }).catch(function() {
-    console.log('Registration failed!');
-  });
-}
-
-registerServiceWorker() // sw gets registered right here in main.js
-
-/**
- * Fetch neighborhoods and cuisines as soon as the page is loaded.
- */
-document.addEventListener('DOMContentLoaded', event => {
-  fetchNeighborhoods()
-  fetchCuisines()
-})
-
-fetchNeighborhoods = () => {
-  fetchRestaurants((error, neighborhoods) => {
-    if (error) {
-      console.error(error)
-    } else {
-      self.neighborhoods = neighborhoods
-      fillNeighborhoodsHTML()
-    }
-  })
-}
-
-fillNeighborhoodsHTML = (neighborhoods = self.neighborhoods) => {
-  const select = document.getElementById('neighborhoods-select')
-  neighborhoods.forEach(neighborhood => {
-    const option = document.createElement('option')
-    option.innerHTML = neighborhood
-    option.value = neighborhood
-    select.append(option)
-  })
-}
-
-fetchCuisines = () => {
-  fetchRestaurants((error, cuisines) => {
-    if (error) {
-      console.error(error)
-    } else {
-      self.cuisines = cuisines
-      fillCuisinesHTML()
-    }
-  })
-}
-
-fillCuisinesHTML = (cuisines = self.cuisines) => {
-  const select = document.getElementById('cuisines-select')
-
-  cuisines.forEach(cuisine => {
-    const option = document.createElement('option')
-    option.innerHTML = cuisine
-    option.value = cuisine
-    select.append(option)
-  })
-}
-
-/**
- * Initialize Google map, called from HTML, in api key string
- */
-window.initMap = () => {
-  let loc = {
-    lat: 40.722216,
-    lng: -73.987501,
-  }
-  self.map = new google.maps.Map(document.getElementById('map'), {
-    zoom: 12,
-    center: loc,
-    scrollwheel: false,
-  })
-  updateRestaurants()
-}
-
-updateRestaurants = () => {
-  const cSelect = document.getElementById('cuisines-select')
-  const nSelect = document.getElementById('neighborhoods-select')
-
-  const cIndex = cSelect.selectedIndex
-  const nIndex = nSelect.selectedIndex
-
-  const cuisine = cSelect[cIndex].value
-  const neighborhood = nSelect[nIndex].value
-
-  fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, (error, restaurants) => {
-    if (error) {
-      console.error(error)
-    } else {
-      resetRestaurants(restaurants)
-      fillRestaurantsHTML()
-    }
-  })
-}
-
-resetRestaurants = restaurants => {
-  // Remove all restaurants
-  self.restaurants = []
-  const ul = document.getElementById('restaurants-list')
-  ul.innerHTML = ''
-
-  // Remove all map markers
-  if (self.markers) {
-    self.markers.forEach(marker => marker.remove())
-  }
-  self.markers = []
-  self.restaurants = restaurants
-}
-
-/**
- * Create all restaurants HTML and add them to the webpage.
- */
-fillRestaurantsHTML = (restaurants = self.restaurants) => {
-  const ul = document.getElementById('restaurants-list')
-  restaurants.forEach(restaurant => {
-    ul.append(createRestaurantHTML(restaurant))
-  })
-  addMarkersToMap()
-}
-
-createRestaurantHTML = restaurant => {
-  const li = document.createElement('li')
-
-  const restaurantContainerDiv = document.createElement('div')
-  restaurantContainerDiv.classList.add('restaurant-container')
-
-  const topDiv = document.createElement('div')
-  const image = document.createElement('img')
-  image.className = 'restaurant-img'
-  image.src = imageUrlForRestaurant(restaurant)
-  image.srcset = getImageSourceSet(image)
-  image.alt = getImageAltText(image)
-
-  topDiv.append(image)
-
-  const name = document.createElement('h1')
-  name.innerHTML = restaurant.name
-
-  restaurantContainerDiv.append(topDiv)
-
-  const bottomDiv = document.createElement('div')
-  const neighborhood = document.createElement('p')
-  neighborhood.innerHTML = restaurant.neighborhood
-
-  const address = document.createElement('p')
-  address.innerHTML = restaurant.address
-  
-  const viewDetails = document.createElement('a')
-  viewDetails.innerHTML = 'View Details'
-  viewDetails.href = urlForRestaurant(restaurant)
-
-  bottomDiv.append(name)
-  bottomDiv.append(neighborhood)
-  bottomDiv.append(address)
-  bottomDiv.append(viewDetails)
-  bottomDiv.classList.add('restaurant-info')
-
-  restaurantContainerDiv.append(bottomDiv)
-
-  li.append(restaurantContainerDiv)
-  return li
-}
-
-addMarkersToMap = (restaurants = self.restaurants) => {
-  restaurants.forEach(restaurant => {
-    const marker = mapMarkerForRestaurant(restaurant, self.map)
-    google.maps.event.addListener(marker, 'click', () => {
-      window.location.href = marker.url
-    })
-    self.markers.push(marker)
-  })
-}
-
-},{"./shared":2}],2:[function(require,module,exports){
-const idb = require('idb');
-
-function getImageAltText(image) {
-  const altTexts = {
-    '1.jpg': 'bustling dining room with chandeliers',
-    '2.jpg': 'mozzarella cheese pizza with bubbly crust',
-    '3.jpg': 'dining room styled with wooden and lots of stainless steel',
-    '4.jpg': 'artistic photo of brick building shot from the corner exterior sidewalk',
-    '5.jpg': 'cook smiles while overlooking a busy cozy scene',
-    '6.jpg': 'a rustic dining room in a converted warehouse, with a large US flag decoration',
-    '7.jpg': 'black and white photo of concrete textured frontage of Superiority Burger joint',
-    '8.jpg': 'building with awning and sign above says the DUTCH',
-    '9.jpg': 'people casually eating and drinking water, beer, and wine, some browse on cellphones',
-    '10.jpg': 'modern white and chrome styled eating bar and seating area'
-  }
-  return altTexts[image.src.split('/').pop()]
-}
-
-function fetchRestaurants(callback) {
-  fetch('http://localhost:1337/restaurants')
-    .then(res => res.json())
-    // TEMPORARY TESTING  FIXME:
-    // Just push all r's into db
-    .then(restaurants => {
-      pushAllRestaurantsIntoIndexedDB(restaurants)
-      return restaurants;
-    })
-    // ^ probably remove or at least refactor that.
-    .then(restaurants => callback(null, restaurants))
-    .catch(err => callback(err, null))
-}
-
-function pushAllRestaurantsIntoIndexedDB(restaurants){
-  var dbPromise = idb.open('restaurantReviews', 1, function(upgradeDb) {
-    upgradeDb.createObjectStore('restaurants', { keyPath: 'id' })
-    // later, create other indexes, neighborhoods, and cuisines, here.
-  });
-
-  dbPromise.then((db) => {
-    var tx = db.transaction('restaurants', 'readwrite');
-    var restaurantsStore = tx.objectStore('restaurants');
-  
-    restaurants.forEach((restaurant) => restaurantsStore.put(restaurant));
-    return tx.complete;
-  }).then(function() {
-    console.log('Restaurants added');
-  });
-}
-
-function urlForRestaurant(restaurant) {
-  return `./restaurant.html?id=${restaurant.id}`
-}
-
-function mapMarkerForRestaurant(restaurant, map) {
-  const marker = new google.maps.Marker({
-    position: restaurant.latlng,
-    title: restaurant.name,
-    url: urlForRestaurant(restaurant),
-    map: map,
-    animation: google.maps.Animation.DROP,
-  })
-  return marker
-}
-
-function fetchRestaurantById(id, callback) {
-  fetchRestaurants((error, restaurants) => {
-    if (error) {
-      callback(error, null)
-    } else {
-      const restaurant = restaurants.find(r => r.id == id)
-      if (restaurant) {
-        callback(null, restaurant)
-      } else {
-        callback('Restaurant does not exist', null)
-      }
-    }
-  })
-}
-
-/*
-* Given an image, return a srcset for it.
-* like: srcset="/img/1-500px.jpg 500w, /img/1-1000px.jpg 1000w, /img/1-1500px.jpg 1500w"
-*/
-function getImageSourceSet(image) {
-  const src = image.src.split('.')[0]
-  return `${src}-500px.jpg 500w, ${src}-1000px.jpg 1000w, ${src}-1500px.jpg 1500w`
-}
-
-module.exports = {
-  getImageAltText,
-  fetchRestaurants,
-  urlForRestaurant,
-  mapMarkerForRestaurant,
-  fetchRestaurantById,
-  getImageSourceSet
-}
-},{"idb":3}],3:[function(require,module,exports){
 'use strict';
 
 (function() {
@@ -690,4 +316,362 @@ module.exports = {
   }
 }());
 
-},{}]},{},[1]);
+},{}],2:[function(require,module,exports){
+let restaurants, neighborhoods, cuisines
+let map
+let markers = []
+const getImageAltText = require('./shared').getImageAltText
+const fetchRestaurants = require('./shared').fetchRestaurants
+const urlForRestaurant = require('./shared').urlForRestaurant
+const mapMarkerForRestaurant = require('./shared').mapMarkerForRestaurant
+const fetchRestaurantById = require('./shared').fetchRestaurantById
+const getImageSourceSet = require('./shared').getImageSourceSet
+
+function getDatabaseUrl() {
+  const port = 10000
+  return `http://localhost:${port}/data/restaurants.json`
+}
+
+function fetchRestaurantByCuisine(cuisine, callback) {
+  fetchRestaurants((error, restaurants) => {
+    if (error) {
+      callback(error, null)
+    } else {
+      const results = restaurants.filter(r => r.cuisine_type == cuisine)
+      callback(null, results)
+    }
+  })
+}
+
+function fetchRestaurantByNeighborhood(neighborhood, callback) {
+  fetchRestaurants((error, restaurants) => {
+    if (error) {
+      callback(error, null)
+    } else {
+      const results = restaurants.filter(r => r.neighborhood == neighborhood)
+      callback(null, results)
+    }
+  })
+}
+
+function fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, callback) {
+  fetchRestaurants((error, restaurants) => {
+    if (error) {
+      callback(error, null)
+    } else {
+      let results = restaurants
+      if (cuisine != 'all') {
+        results = results.filter(r => r.cuisine_type == cuisine)
+      }
+      if (neighborhood != 'all') {
+        results = results.filter(r => r.neighborhood == neighborhood)
+      }
+      callback(null, results)
+    }
+  })
+}
+
+function fetchNeighborhoods(callback) {
+  fetchRestaurants((error, restaurants) => {
+    if (error) {
+      callback(error, null)
+    } else {
+      const neighborhoods = restaurants.map((v, i) => restaurants[i].neighborhood)
+      const uniqueNeighborhoods = neighborhoods.filter((v, i) => neighborhoods.indexOf(v) == i)
+      callback(null, uniqueNeighborhoods)
+    }
+  })
+}
+
+function fetchCuisines(callback) {
+  fetchRestaurants((error, restaurants) => {
+    if (error) {
+      callback(error, null)
+    } else {
+      const cuisines = restaurants.map((v, i) => restaurants[i].cuisine_type)
+      const uniqueCuisines = cuisines.filter((v, i) => cuisines.indexOf(v) == i)
+      callback(null, uniqueCuisines)
+    }
+  })
+}
+
+function imageUrlForRestaurant(restaurant) {
+  return `/img/${restaurant.photograph}`
+}
+
+function registerServiceWorker() {
+  if (!navigator.serviceWorker) return;
+  navigator.serviceWorker.register('../sw.js').then(function(registration) {
+    console.log(`SW registration successful with scope: ${registration.scope}`);
+  }).catch(function() {
+    console.log('Registration failed!');
+  });
+}
+
+registerServiceWorker() // sw gets registered right here in main.js
+
+/**
+ * Fetch neighborhoods and cuisines as soon as the page is loaded.
+ */
+document.addEventListener('DOMContentLoaded', event => {
+  fetchNeighborhoods()
+  fetchCuisines()
+})
+
+fetchNeighborhoods = () => {
+  fetchRestaurants((error, neighborhoods) => {
+    if (error) {
+      console.error(error)
+    } else {
+      self.neighborhoods = neighborhoods
+      fillNeighborhoodsHTML()
+    }
+  })
+}
+
+fillNeighborhoodsHTML = (neighborhoods = self.neighborhoods) => {
+  const select = document.getElementById('neighborhoods-select')
+  neighborhoods.forEach(neighborhood => {
+    const option = document.createElement('option')
+    option.innerHTML = neighborhood
+    option.value = neighborhood
+    select.append(option)
+  })
+}
+
+fetchCuisines = () => {
+  fetchRestaurants((error, cuisines) => {
+    if (error) {
+      console.error(error)
+    } else {
+      self.cuisines = cuisines
+      fillCuisinesHTML()
+    }
+  })
+}
+
+fillCuisinesHTML = (cuisines = self.cuisines) => {
+  const select = document.getElementById('cuisines-select')
+
+  cuisines.forEach(cuisine => {
+    const option = document.createElement('option')
+    option.innerHTML = cuisine
+    option.value = cuisine
+    select.append(option)
+  })
+}
+
+/**
+ * Initialize Google map, called from HTML, in api key string
+ */
+window.initMap = () => {
+  let loc = {
+    lat: 40.722216,
+    lng: -73.987501,
+  }
+  self.map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 12,
+    center: loc,
+    scrollwheel: false,
+  })
+  updateRestaurants()
+}
+
+updateRestaurants = () => {
+  const cSelect = document.getElementById('cuisines-select')
+  const nSelect = document.getElementById('neighborhoods-select')
+
+  const cIndex = cSelect.selectedIndex
+  const nIndex = nSelect.selectedIndex
+
+  const cuisine = cSelect[cIndex].value
+  const neighborhood = nSelect[nIndex].value
+
+  fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, (error, restaurants) => {
+    if (error) {
+      console.error(error)
+    } else {
+      resetRestaurants(restaurants)
+      fillRestaurantsHTML()
+    }
+  })
+}
+
+resetRestaurants = restaurants => {
+  // Remove all restaurants
+  self.restaurants = []
+  const ul = document.getElementById('restaurants-list')
+  ul.innerHTML = ''
+
+  // Remove all map markers
+  if (self.markers) {
+    self.markers.forEach(marker => marker.remove())
+  }
+  self.markers = []
+  self.restaurants = restaurants
+}
+
+/**
+ * Create all restaurants HTML and add them to the webpage.
+ */
+fillRestaurantsHTML = (restaurants = self.restaurants) => {
+  const ul = document.getElementById('restaurants-list')
+  restaurants.forEach(restaurant => {
+    ul.append(createRestaurantHTML(restaurant))
+  })
+  addMarkersToMap()
+}
+
+createRestaurantHTML = restaurant => {
+  console.log(`createRestaurantHTML is being called`);
+  const li = document.createElement('li')
+
+  const restaurantContainerDiv = document.createElement('div')
+  restaurantContainerDiv.classList.add('restaurant-container')
+
+  const topDiv = document.createElement('div')
+  const image = document.createElement('img')
+  image.className = 'restaurant-img'
+  image.src = imageUrlForRestaurant(restaurant)
+  image.srcset = getImageSourceSet(image)
+  image.alt = getImageAltText(image)
+
+  topDiv.append(image)
+
+  const name = document.createElement('h2')
+  name.innerHTML = restaurant.name
+
+  restaurantContainerDiv.append(topDiv)
+
+  const bottomDiv = document.createElement('div')
+  const neighborhood = document.createElement('p')
+  neighborhood.innerHTML = restaurant.neighborhood
+
+  const address = document.createElement('p')
+  address.innerHTML = restaurant.address
+  
+  const viewDetails = document.createElement('a')
+  viewDetails.innerHTML = 'View Details'
+  viewDetails.href = urlForRestaurant(restaurant)
+
+  bottomDiv.append(name)
+  bottomDiv.append(neighborhood)
+  bottomDiv.append(address)
+  bottomDiv.append(viewDetails)
+  bottomDiv.classList.add('restaurant-info')
+
+  restaurantContainerDiv.append(bottomDiv)
+
+  li.append(restaurantContainerDiv)
+  return li
+}
+
+addMarkersToMap = (restaurants = self.restaurants) => {
+  console.log('adding markers to map');
+  restaurants.forEach(restaurant => {
+    const marker = mapMarkerForRestaurant(restaurant, self.map)
+    google.maps.event.addListener(marker, 'click', () => {
+      window.location.href = marker.url
+    })
+    self.markers.push(marker)
+  })
+}
+
+},{"./shared":3}],3:[function(require,module,exports){
+const idb = require('idb');
+
+function getImageAltText(image) {
+  const altTexts = {
+    '1': 'bustling dining room with chandeliers',
+    '2': 'mozzarella cheese pizza with bubbly crust',
+    '3': 'dining room styled with wooden and lots of stainless steel',
+    '4': 'artistic photo of brick building shot from the corner exterior sidewalk',
+    '5': 'cook smiles while overlooking a busy cozy scene',
+    '6': 'a rustic dining room in a converted warehouse, with a large US flag decoration',
+    '7': 'black and white photo of concrete textured frontage of Superiority Burger joint',
+    '8': 'building with awning and sign above says the DUTCH',
+    '9': 'people casually eating and drinking water, beer, and wine, some browse on cellphones',
+    '10': 'modern white and chrome styled eating bar and seating area'
+  }
+  console.log(`getImageAltText returning: ${altTexts[image.src.split('/').pop()]}`);
+  console.log(`image.src string is ${image.src}`);
+  // http://localhost:9999/img/4
+  return altTexts[image.src.split('/').pop()];
+}
+
+function fetchRestaurants(callback) {
+  fetch('http://localhost:1337/restaurants')
+    .then(res => res.json())
+    .then(restaurants => {
+      pushAllRestaurantsIntoIndexedDB(restaurants)
+      return restaurants;
+    })
+    .then(restaurants => callback(null, restaurants))
+    .catch(err => callback(err, null))
+}
+
+function pushAllRestaurantsIntoIndexedDB(restaurants){
+  var dbPromise = idb.open('restaurantReviews', 1, function(upgradeDb) {
+    upgradeDb.createObjectStore('restaurants', { keyPath: 'id' })
+    // later, create other indexes, neighborhoods, and cuisines, here.
+  });
+
+  dbPromise.then((db) => {
+    var tx = db.transaction('restaurants', 'readwrite');
+    var restaurantsStore = tx.objectStore('restaurants');
+  
+    restaurants.forEach((restaurant) => restaurantsStore.put(restaurant));
+    return tx.complete;
+  }).then(function() {
+    console.log('Restaurants added');
+  });
+}
+
+function urlForRestaurant(restaurant) {
+  return `./restaurant.html?id=${restaurant.id}`
+}
+
+function mapMarkerForRestaurant(restaurant, map) {
+  const marker = new google.maps.Marker({
+    position: restaurant.latlng,
+    title: restaurant.name,
+    url: urlForRestaurant(restaurant),
+    map: map,
+    animation: google.maps.Animation.DROP,
+  })
+  return marker
+}
+
+function fetchRestaurantById(id, callback) {
+  fetchRestaurants((error, restaurants) => {
+    if (error) {
+      callback(error, null)
+    } else {
+      const restaurant = restaurants.find(r => r.id == id)
+      if (restaurant) {
+        callback(null, restaurant)
+      } else {
+        callback('Restaurant does not exist', null)
+      }
+    }
+  })
+}
+
+/*
+* Given an image, return a srcset for it.
+* like: srcset="/img/1-500px.jpg 500w, /img/1-1000px.jpg 1000w, /img/1-1500px.jpg 1500w"
+*/
+function getImageSourceSet(image) {
+  const src = image.src.split('.')[0]
+  return `${src}-500px.jpg 500w, ${src}-1000px.jpg 1000w, ${src}-1500px.jpg 1500w`
+}
+
+module.exports = {
+  getImageAltText,
+  fetchRestaurants,
+  urlForRestaurant,
+  mapMarkerForRestaurant,
+  fetchRestaurantById,
+  getImageSourceSet
+}
+},{"idb":1}]},{},[2]);

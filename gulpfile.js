@@ -28,10 +28,6 @@ const buildSw = () => {
       'restaurant.html',
       'js\/*.js',
       'img\/*.jpg'
-      // TODO:
-      // ,
-      // 'pages/offline.html',
-      // 'pages/404.html'
     ]
   }).then(resources => {
     console.log(`Injected ${resources.count} resources for precaching, ` +

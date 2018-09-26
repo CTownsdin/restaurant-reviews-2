@@ -7,7 +7,6 @@ It must be started up first.
 To start the jsonServer, do the following...  
 
 Use node version 8.  
-
 In the terminal  
 `$ cd jsonServer`  
 `$ npm install`  
@@ -16,13 +15,12 @@ In the terminal
 Verify it is running by navigating to **http://localhost:1337/restaurants** in your browser, and geting the restaurants JSON.  
 Further information about the jsonServer is available in the README.md inside the jsonServer/ folder.  
 
-Next, we can start the main project.  Change directory back to the project root, and...  
-`$ npm install`  
-`$ npm run serve`  
+Next, do these steps...  
+`$ npm run bundleJS`  to rebuild the JS bundles in the src directory  
+`$ npm run gulp-serve`  to wipe and rebuild the build/ directory  
+ctrl-c out of that  
+`$ npm run simpleServer` to serve the build/ directory files  
 
-And view the app in your browser at:  
-http://localhost:8081  
+and we can view the app, being served from the build/ folder, at...  
+*http://localhost:9999*  
 
-The serve script is running gulp serve, and gulp serve is defined in gulpfile.js.  
-This builds and runs the application.  
-The build is in the build/ folder.  
