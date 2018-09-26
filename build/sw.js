@@ -26,7 +26,7 @@ if (workbox) {
   },
   {
     "url": "restaurant.html",
-    "revision": "98a92f92cb7979ce2666b3c2916d4322"
+    "revision": "e1a969ec3f900ed3a34aafa825843bdb"
   },
   {
     "url": "js/bundle-main.js",
@@ -38,11 +38,11 @@ if (workbox) {
   },
   {
     "url": "js/main.js",
-    "revision": "fd17d504b546d526653ca18888d9dc6b"
+    "revision": "cf3dc546cd41ab0be62ea352c93cf7cb"
   },
   {
     "url": "js/restaurantInfo.js",
-    "revision": "0b537a70994b678a3a11412012eb4a98"
+    "revision": "e5fd6d9933385cc76d759925311d1c68"
   },
   {
     "url": "js/shared.js",
