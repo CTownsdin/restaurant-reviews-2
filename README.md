@@ -4,7 +4,7 @@ Project Code For Google Mobile Web Nano Degree  Part 2
 
 This project has a separate JSON server to simulate fetching data from an external API.  
 It must be started up first.  
-do the following...  
+To start the jsonServer, do the following...  
 
 Use node version 8.  
 
@@ -22,3 +22,7 @@ Next, we can start the main project.  Change directory back to the project root,
 
 And view the app in your browser at:  
 http://localhost:8081  
+
+The serve script is running gulp serve, and gulp serve is defined in gulpfile.js.  
+This builds and runs the application.  
+The build is in the build/ folder.  
